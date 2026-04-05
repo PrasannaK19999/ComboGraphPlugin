@@ -1,0 +1,31 @@
+# ============================================================================
+# Unreal Engine .gitignore — ComboGraph Plugin Project
+# ============================================================================
+
+# --- Unreal Build Artifacts ---
+Binaries/
+Intermediate/
+DerivedDataCache/
+Build/
+Saved/
+
+# --- IDE / Editor ---
+.vs/
+.vscode/
+.idea/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# --- OS Junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Compiled Assets (let UE regenerate) ---
+*.VC.db
+*.opensdf
+*.sdf
+*.suo
+*.cachefile

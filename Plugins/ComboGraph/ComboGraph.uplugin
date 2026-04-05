@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "ComboGraph",
+	"Description": "Graph-based action sequencing plugin for Unreal Engine 5. O(1) input processing, GameplayTag-driven transitions, montage-gated execution, data-driven authoring.",
+	"Category": "Gameplay",
+	"CreatedBy": "",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "ComboGraph",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
