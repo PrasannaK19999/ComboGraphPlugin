@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 2026 Prasanna Keerthivasan. All Rights Reserved.
 
 #include "ComboGraphDev.h"
 #include "Modules/ModuleManager.h"

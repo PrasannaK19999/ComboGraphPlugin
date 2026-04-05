@@ -1,3 +1,5 @@
+// Copyright 2026 Prasanna Keerthivasan. All Rights Reserved.
+
 #include "ComboGraph/ComboGraph.h"
 #include "ComboNode/ComboNode.h"
 #include "ComboGraphModule.h"
