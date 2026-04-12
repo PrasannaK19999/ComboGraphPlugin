@@ -35,6 +35,20 @@ void UComboNode::Activate(USkeletalMeshComponent* InMesh)
 		return;
 	}
 
+	// Double-activation guard — reject if a transition is already in flight
+	IComboGraphContract* Graph = GetGraphContract();
+	if (Graph && Graph->IsTransitioning())
+	{
+		UE_LOG(LogComboGraph, Warning, TEXT("Node [%s] Activate() rejected — graph is already transitioning"), *GetName());
+		return;
+	}
+
+	// Clear the transitioning flag — this node has taken over, transition is complete
+	if (Graph)
+	{
+		Graph->SetTransitioning(false);
+	}
+
 	UAnimInstance* AnimInstance = InMesh->GetAnimInstance();
 	if (!AnimInstance)
 	{
@@ -69,11 +83,9 @@ void UComboNode::Activate(USkeletalMeshComponent* InMesh)
 		AnimInstance->Montage_JumpToSection(MontageSection, ActionMontage);
 	}
 
-	FOnMontageEnded EndDelegate;
-	EndDelegate.BindUObject(this, &UComboNode::OnMontageCompleted);
-	AnimInstance->Montage_SetEndDelegate(EndDelegate, ActionMontage);
+	// Bind to the global OnMontageEnded multicast delegate
+	AnimInstance->OnMontageEnded.AddDynamic(this, &UComboNode::OnMontageCompleted);
 
-	IComboGraphContract* Graph = GetGraphContract();
 	if (Graph)
 	{
 		Graph->NotifyNodeActivated(this);
@@ -102,6 +114,12 @@ void UComboNode::ReceiveInput(FGameplayTag Tag)
 
 void UComboNode::OnMontageCompleted(UAnimMontage* Montage, bool bInterrupted)
 {
+	// OnMontageEnded fires for all montages — ignore anything that isn't ours
+	if (Montage != ActionMontage)
+	{
+		return;
+	}
+
 	if (bInterrupted)
 	{
 		// External cancellation (dodge, block, stagger, death).
@@ -175,6 +193,7 @@ void UComboNode::OnExitState()
 			// Must capture tag before ResetActivationState clears NextComboTag
 			const FGameplayTag TransitionTag = NextComboTag;
 			ResetActivationState();
+			Graph->SetTransitioning(true);
 			Graph->NotifyTransition(TransitionTag);
 			Path->TargetNode->Activate(Mesh);
 		}
@@ -188,6 +207,7 @@ void UComboNode::OnExitState()
 
 			if (UComboNode* RootNode = Graph->GetRootNode())
 			{
+				Graph->SetTransitioning(true);
 				RootNode->Activate(Mesh);
 			}
 		}
@@ -201,6 +221,7 @@ void UComboNode::OnExitState()
 
 		if (UComboNode* RootNode = Graph->GetRootNode())
 		{
+			Graph->SetTransitioning(true);
 			RootNode->Activate(Mesh);
 		}
 	}

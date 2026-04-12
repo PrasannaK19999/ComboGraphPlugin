@@ -29,7 +29,7 @@ public:
 
 	virtual void NotifyNodeActivated(UComboNode* Node) override;
 
-	virtual void NotifyComboInterruption() override;
+	virtual void NotifyInterruption() override;
 
 	void InitializeFromNodes(TArray<UComboNode*> Nodes, UComboNode* Root);
 
@@ -37,9 +37,8 @@ public:
 	TArray<FGameplayTag> GetComboHistory() const { return ComboHistory; }
 	bool IsActive() const { return CurrentDepth > 0; }
 
-	/** Double-activation guard. Checked by node Activate() to prevent two nodes active simultaneously. */
-	bool IsTransitioning() const { return bIsTransitioning; }
-	void SetTransitioning(bool bValue) { bIsTransitioning = bValue; }
+	virtual bool IsTransitioning() const override { return bIsTransitioning; }
+	virtual void SetTransitioning(bool bValue) override { bIsTransitioning = bValue; }
 
 	void RouteInput(FGameplayTag Tag);
 

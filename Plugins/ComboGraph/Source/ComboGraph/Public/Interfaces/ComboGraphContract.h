@@ -28,7 +28,11 @@ public:
 
 	virtual void NotifyComboEnd() = 0;
 
-	virtual void NotifyComboInterruption() = 0;
+	virtual void NotifyInterruption() = 0;
 
 	virtual void NotifyNodeActivated(UComboNode* Node) = 0;
+
+	virtual bool IsTransitioning() const = 0;
+
+	virtual void SetTransitioning(bool bValue) = 0;
 };

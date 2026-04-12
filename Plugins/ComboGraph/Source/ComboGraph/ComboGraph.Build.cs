@@ -13,8 +13,7 @@ public class ComboGraph : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"GameplayTags",
-			"StructUtils"   // UE 5.5+: may be folded into CoreUObject — remove if redundant
+			"GameplayTags"
 		});
 	}
 }

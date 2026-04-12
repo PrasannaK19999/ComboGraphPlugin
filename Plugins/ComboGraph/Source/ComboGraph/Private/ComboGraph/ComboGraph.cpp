@@ -48,7 +48,7 @@ void UComboGraph::NotifyNodeActivated(UComboNode* Node)
 		*GetName(), Node ? *Node->GetName() : TEXT("null"));
 }
 
-void UComboGraph::NotifyComboInterruption()
+void UComboGraph::NotifyInterruption()
 {
 	// v1: all interruptions are hard reset. No EComboInterruptPolicy enum — single behavior.
 	UE_LOG(LogComboGraph, Log, TEXT("Graph [%s] interrupted, hard reset"), *GetName());
