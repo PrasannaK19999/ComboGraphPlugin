@@ -11,7 +11,7 @@ class UComboGraphDataAsset;
 struct FComboNodeData;
 
 
-class FComboGraphBuilder
+class COMBOGRAPH_API FComboGraphBuilder
 {
 public:
 

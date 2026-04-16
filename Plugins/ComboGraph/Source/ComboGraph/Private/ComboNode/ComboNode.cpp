@@ -193,7 +193,6 @@ void UComboNode::OnExitState()
 			// Must capture tag before ResetActivationState clears NextComboTag
 			const FGameplayTag TransitionTag = NextComboTag;
 			ResetActivationState();
-			Graph->SetTransitioning(true);
 			Graph->NotifyTransition(TransitionTag);
 			Path->TargetNode->Activate(Mesh);
 		}
@@ -204,12 +203,6 @@ void UComboNode::OnExitState()
 			UE_LOG(LogComboGraph, Verbose, TEXT("Dead end at [%s], tag [%s] has no path"), *GetName(), *NextComboTag.ToString());
 			ResetActivationState();
 			Graph->NotifyComboEnd();
-
-			if (UComboNode* RootNode = Graph->GetRootNode())
-			{
-				Graph->SetTransitioning(true);
-				RootNode->Activate(Mesh);
-			}
 		}
 	}
 	else
@@ -218,12 +211,6 @@ void UComboNode::OnExitState()
 		UE_LOG(LogComboGraph, Verbose, TEXT("No input at [%s], resetting to root"), *GetName());
 		ResetActivationState();
 		Graph->NotifyComboEnd();
-
-		if (UComboNode* RootNode = Graph->GetRootNode())
-		{
-			Graph->SetTransitioning(true);
-			RootNode->Activate(Mesh);
-		}
 	}
 }
 

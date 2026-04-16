@@ -8,7 +8,7 @@ public class ComboGraphDev : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "ComboGraph" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "ComboGraph", "GameplayTags" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
