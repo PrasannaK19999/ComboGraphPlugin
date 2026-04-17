@@ -23,6 +23,9 @@ Saved/
 Thumbs.db
 desktop.ini
 
+# --- Pro-only modules (not distributed in free version) ---
+Plugins/ComboGraph/Source/ComboGraphEditor/
+
 # --- Compiled Assets (let UE regenerate) ---
 *.VC.db
 *.opensdf
