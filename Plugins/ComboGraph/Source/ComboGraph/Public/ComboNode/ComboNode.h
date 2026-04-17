@@ -38,6 +38,12 @@ public:
 
 	void ReceiveInput(FGameplayTag Tag);
 
+	/** Called by UComboGraph::NotifyComboWindow() when UComboWindowNotify fires.
+	 *  Opens the input window early — decay starts now, montage keeps playing.
+	 *  If input was already buffered, transitions immediately. */
+	void OpenComboWindow();
+	void CloseComboWindow();
+
 protected:
 
 	UFUNCTION()
@@ -54,12 +60,19 @@ private:
 	IComboGraphContract* GetGraphContract() const;
 
 	void StopDecayTimer();
+	void StartDecayTimer();
 
 	FGameplayTag NextComboTag;
 
 	FTimerHandle DecayTimerHandle;
 
-	bool bMontageCompleted = false;
+	bool bMontageCompleted  = false;
+
+	// True once UComboWindowNotify fires — opens input window before montage ends
+	bool bComboWindowOpen   = false;
+
+	// Guards against OnExitState being called twice if notify and montage-end race
+	bool bExitStateInFlight = false;
 
 	TWeakObjectPtr<USkeletalMeshComponent> CachedMesh;
 };

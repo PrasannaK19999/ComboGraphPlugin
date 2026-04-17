@@ -42,6 +42,11 @@ public:
 
 	void RouteInput(FGameplayTag Tag);
 
+	/** Called by IComboWindowListener when UComboWindowNotify fires.
+	 *  Forwards to the active node to open its input window early. */
+	void NotifyComboWindow();
+	void NotifyComboWindowClosed();
+
 	UPROPERTY(BlueprintAssignable, Category = "Combo")
 	FOnComboBegin OnComboBegin;
 
@@ -67,4 +72,9 @@ private:
 
 	UPROPERTY()
 	TWeakObjectPtr<UComboNode> ActiveNode;
+
+	// The node that opened the current notify-state window — may differ from ActiveNode
+	// after a rapid transition. Stale NotifyEnd events are discarded if this is null.
+	UPROPERTY()
+	TWeakObjectPtr<UComboNode> WindowNode;
 };

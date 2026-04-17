@@ -44,6 +44,7 @@ void UComboGraph::NotifyComboEnd()
 void UComboGraph::NotifyNodeActivated(UComboNode* Node)
 {
 	ActiveNode = Node;
+	WindowNode = nullptr; // new activation invalidates any in-flight notify state window
 	UE_LOG(LogComboGraph, Verbose, TEXT("Graph [%s] active node set to [%s]"),
 		*GetName(), Node ? *Node->GetName() : TEXT("null"));
 }
@@ -83,6 +84,27 @@ void UComboGraph::InitializeFromNodes(TArray<UComboNode*> Nodes, UComboNode* Roo
 	{
 		UE_LOG(LogComboGraph, Log, TEXT("Graph [%s] initialized with %d nodes, root=[%s]"),
 			*GetName(), AllNodes.Num(), *RootNode->GetName());
+	}
+}
+
+void UComboGraph::NotifyComboWindow()
+{
+	if (ActiveNode.IsValid())
+	{
+		WindowNode = ActiveNode;
+		ActiveNode->OpenComboWindow();
+	}
+}
+
+void UComboGraph::NotifyComboWindowClosed()
+{
+	// Use WindowNode, not ActiveNode — a rapid transition may have already moved ActiveNode
+	// forward. Stale NotifyEnd from the previous montage must close the node that opened
+	// the window, not whatever is currently active.
+	if (WindowNode.IsValid())
+	{
+		WindowNode->CloseComboWindow();
+		WindowNode = nullptr;
 	}
 }
 

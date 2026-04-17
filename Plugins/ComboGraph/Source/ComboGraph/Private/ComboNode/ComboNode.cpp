@@ -27,6 +27,23 @@ void UComboNode::StopDecayTimer()
 	}
 }
 
+void UComboNode::StartDecayTimer()
+{
+	if (const USkeletalMeshComponent* Mesh = CachedMesh.Get())
+	{
+		if (UWorld* World = Mesh->GetWorld())
+		{
+			World->GetTimerManager().SetTimer(
+				DecayTimerHandle,
+				this,
+				&UComboNode::OnDecayExpired,
+				DecayTime,
+				false
+			);
+		}
+	}
+}
+
 void UComboNode::Activate(USkeletalMeshComponent* InMesh)
 {
 	if (!InMesh)
@@ -35,7 +52,6 @@ void UComboNode::Activate(USkeletalMeshComponent* InMesh)
 		return;
 	}
 
-	// Double-activation guard — reject if a transition is already in flight
 	IComboGraphContract* Graph = GetGraphContract();
 	if (Graph && Graph->IsTransitioning())
 	{
@@ -43,7 +59,6 @@ void UComboNode::Activate(USkeletalMeshComponent* InMesh)
 		return;
 	}
 
-	// Clear the transitioning flag — this node has taken over, transition is complete
 	if (Graph)
 	{
 		Graph->SetTransitioning(false);
@@ -62,15 +77,15 @@ void UComboNode::Activate(USkeletalMeshComponent* InMesh)
 		return;
 	}
 
-	// Step 1: Reset transient state so no stale data from a previous activation leaks through
-	NextComboTag = FGameplayTag();
-	bMontageCompleted = false;
+	// Reset all transient state — new activation starts clean
+	NextComboTag       = FGameplayTag();
+	bMontageCompleted  = false;
+	bComboWindowOpen   = false;
+	bExitStateInFlight = false;
 	StopDecayTimer();
 
-	// Step 2: Cache the mesh — minimum dependency for montage playback and world/timer access
 	CachedMesh = InMesh;
 
-	// Step 3: Play the montage
 	const float MontageLength = AnimInstance->Montage_Play(ActionMontage);
 	if (MontageLength <= 0.f)
 	{
@@ -83,7 +98,6 @@ void UComboNode::Activate(USkeletalMeshComponent* InMesh)
 		AnimInstance->Montage_JumpToSection(MontageSection, ActionMontage);
 	}
 
-	// Bind to the global OnMontageEnded multicast delegate
 	AnimInstance->OnMontageEnded.AddDynamic(this, &UComboNode::OnMontageCompleted);
 
 	if (Graph)
@@ -104,17 +118,60 @@ void UComboNode::ReceiveInput(FGameplayTag Tag)
 	NextComboTag = Tag;
 	UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] buffered input [%s]"), *GetName(), *Tag.ToString());
 
-	// If the montage already finished, we're in the decay window — go immediately
-	if (bMontageCompleted)
+	// Act immediately if the window is already open (notify fired or montage done)
+	if (bComboWindowOpen || bMontageCompleted)
 	{
 		StopDecayTimer();
 		OnExitState();
 	}
 }
 
+void UComboNode::OpenComboWindow()
+{
+	// Ignore if already open — notify should only fire once per activation
+	if (bComboWindowOpen)
+	{
+		return;
+	}
+
+	bComboWindowOpen = true;
+
+	UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] combo window opened via notify"), *GetName());
+
+	if (NextComboTag.IsValid())
+	{
+		// Input was already buffered before the window opened — transition now
+		StopDecayTimer();
+		OnExitState();
+	}
+	else
+	{
+		// No input yet — start decay window. Montage keeps playing in the background.
+		StartDecayTimer();
+	}
+}
+
+void UComboNode::CloseComboWindow()
+{
+	if (!bComboWindowOpen)
+	{
+		return;
+	}
+
+	UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] combo window closed via notify end"), *GetName());
+
+	// Window closed by the notify state end — if no input arrived, stop decay and end combo
+	if (!NextComboTag.IsValid())
+	{
+		StopDecayTimer();
+		bComboWindowOpen = false;
+		OnExitState();
+	}
+	// If input arrived during the window, OnExitState was already called — do nothing
+}
+
 void UComboNode::OnMontageCompleted(UAnimMontage* Montage, bool bInterrupted)
 {
-	// OnMontageEnded fires for all montages — ignore anything that isn't ours
 	if (Montage != ActionMontage)
 	{
 		return;
@@ -122,63 +179,72 @@ void UComboNode::OnMontageCompleted(UAnimMontage* Montage, bool bInterrupted)
 
 	if (bInterrupted)
 	{
-		// External cancellation (dodge, block, stagger, death).
-		// Clean up but do NOT call OnExitState — the interrupting system is in control.
-		UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] interrupted externally"), *GetName());
-		ResetActivationState();
+		// Montage was stopped externally (e.g. next Montage_Play during a rapid transition).
+		// Only clean up LOCAL state — do NOT notify the graph. By the time this fires
+		// (next anim tick), the graph has already moved on to a new active node.
+		// Calling NotifyNodeActivated(nullptr) here would wipe out the live active node.
+		UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] montage interrupted — local cleanup only"), *GetName());
+		NextComboTag       = FGameplayTag();
+		bMontageCompleted  = false;
+		bComboWindowOpen   = false;
+		bExitStateInFlight = false;
+		StopDecayTimer();
+		if (const USkeletalMeshComponent* Mesh = CachedMesh.Get())
+		{
+			if (UAnimInstance* AnimInstance = Mesh->GetAnimInstance())
+			{
+				AnimInstance->OnMontageEnded.RemoveDynamic(this, &UComboNode::OnMontageCompleted);
+			}
+		}
 		return;
 	}
 
 	bMontageCompleted = true;
 
+	if (bComboWindowOpen)
+	{
+		// Notify already opened the window — decay timer is running.
+		// If input arrived, OnExitState was already called from ReceiveInput or OpenComboWindow.
+		// If decay is still running, let it expire naturally. Nothing to do here.
+		UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] montage completed, window already open — decay continues"), *GetName());
+		return;
+	}
+
+	// Fallback: no notify was placed — open the window now (original behavior)
 	if (NextComboTag.IsValid())
 	{
-		// Input was buffered during montage — skip decay entirely, transition now
-		UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] montage completed, decay=skipped"), *GetName());
+		UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] montage completed, decay=skipped (input buffered)"), *GetName());
 		OnExitState();
 	}
 	else
 	{
-		// No input yet — start the decay window. Node keeps listening for input.
-		UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] montage completed, decay=started"), *GetName());
-
-		if (const USkeletalMeshComponent* Mesh = CachedMesh.Get())
-		{
-			if (UWorld* World = Mesh->GetWorld())
-			{
-				World->GetTimerManager().SetTimer(
-					DecayTimerHandle,
-					this,
-					&UComboNode::OnDecayExpired,
-					DecayTime,
-					false // fires once — not a repeating timer
-				);
-			}
-		}
+		UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] montage completed, decay=started (no notify fallback)"), *GetName());
+		StartDecayTimer();
 	}
 }
 
 void UComboNode::OnDecayExpired()
 {
 	UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] decay expired"), *GetName());
-
-	// Frame-perfect edge case: input might have arrived between timer firing and this callback.
-	// If so, OnExitState will find NextComboTag valid and honor it — input wins on ties.
 	OnExitState();
 }
 
 void UComboNode::OnExitState()
 {
+	// Race condition guard — notify + montage-end can both lead here on the same frame
+	if (bExitStateInFlight)
+	{
+		return;
+	}
+	bExitStateInFlight = true;
+
 	IComboGraphContract* Graph = GetGraphContract();
 	if (!Graph)
 	{
-		// Safety: graph was destroyed while node was active. Become inert. No crash.
 		UE_LOG(LogComboGraph, Error, TEXT("Node [%s] GetGraphContract() returned null — graph may have been destroyed"), *GetName());
 		return;
 	}
 
-	// Cache mesh before ResetActivationState — Outcomes 2 and 3 need it for root activation.
-	// ResetActivationState intentionally preserves CachedMesh for this reason.
 	USkeletalMeshComponent* Mesh = CachedMesh.Get();
 
 	if (NextComboTag.IsValid())
@@ -190,7 +256,6 @@ void UComboNode::OnExitState()
 			// OUTCOME 1: Valid transition — combo continues
 			UE_LOG(LogComboGraph, Verbose, TEXT("Transition [%s] -> [%s]"), *GetName(), *Path->TargetNode->GetName());
 
-			// Must capture tag before ResetActivationState clears NextComboTag
 			const FGameplayTag TransitionTag = NextComboTag;
 			ResetActivationState();
 			Graph->NotifyTransition(TransitionTag);
@@ -198,8 +263,7 @@ void UComboNode::OnExitState()
 		}
 		else
 		{
-			// OUTCOME 2: Tag valid but no matching path — dead end
-			// Input is DISCARDED. Does NOT carry forward to root. Player must input fresh.
+			// OUTCOME 2: Dead end — no matching path
 			UE_LOG(LogComboGraph, Verbose, TEXT("Dead end at [%s], tag [%s] has no path"), *GetName(), *NextComboTag.ToString());
 			ResetActivationState();
 			Graph->NotifyComboEnd();
@@ -207,7 +271,7 @@ void UComboNode::OnExitState()
 	}
 	else
 	{
-		// OUTCOME 3: No input received — decay expired, reset to root
+		// OUTCOME 3: No input — decay expired
 		UE_LOG(LogComboGraph, Verbose, TEXT("No input at [%s], resetting to root"), *GetName());
 		ResetActivationState();
 		Graph->NotifyComboEnd();
@@ -216,9 +280,11 @@ void UComboNode::OnExitState()
 
 void UComboNode::ResetActivationState()
 {
-	NextComboTag = FGameplayTag();
+	NextComboTag       = FGameplayTag();
+	bMontageCompleted  = false;
+	bComboWindowOpen   = false;
+	bExitStateInFlight = false;
 	StopDecayTimer();
-	bMontageCompleted = false;
 
 	if (const USkeletalMeshComponent* Mesh = CachedMesh.Get())
 	{

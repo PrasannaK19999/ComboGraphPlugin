@@ -68,6 +68,22 @@ void UComboManagerComponent::OnComboInput(FGameplayTag InputTag)
 	Root->Activate(CachedMesh.Get());
 }
 
+void UComboManagerComponent::OnComboWindowOpened_Implementation()
+{
+	if (ActiveGraph.IsValid())
+	{
+		ActiveGraph->NotifyComboWindow();
+	}
+}
+
+void UComboManagerComponent::OnComboWindowClosed_Implementation()
+{
+	if (ActiveGraph.IsValid())
+	{
+		ActiveGraph->NotifyComboWindowClosed();
+	}
+}
+
 void UComboManagerComponent::SetWeaponDataTable(UDataTable* NewTable)
 {
 	// Interrupt any running combo cleanly before swapping

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
+#include "Interfaces/ComboWindowListener.h"
 #include "ComboManagerComponent.generated.h"
 
 class UDataTable;
@@ -19,7 +20,7 @@ class USkeletalMeshComponent;
  * Swap ComboDataTable at runtime (SetWeaponDataTable) to change weapons.
  */
 UCLASS(ClassGroup=(Combat), meta=(BlueprintSpawnableComponent))
-class COMBOGRAPHDEV_API UComboManagerComponent : public UActorComponent
+class COMBOGRAPHDEV_API UComboManagerComponent : public UActorComponent, public IComboWindowListener
 {
 	GENERATED_BODY()
 
@@ -28,6 +29,10 @@ public:
 	UComboManagerComponent();
 
 	virtual void BeginPlay() override;
+
+	// IComboWindowListener
+	virtual void OnComboWindowOpened_Implementation() override;
+	virtual void OnComboWindowClosed_Implementation() override;
 
 	// -----------------------------------------------------------------------
 	// Configuration
