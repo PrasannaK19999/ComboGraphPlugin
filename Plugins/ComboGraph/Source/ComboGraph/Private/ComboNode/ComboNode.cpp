@@ -8,6 +8,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimSequenceBase.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
 
@@ -18,12 +19,10 @@ IComboGraphContract* UComboNode::GetGraphContract() const
 
 void UComboNode::StopDecayTimer()
 {
-	if (const USkeletalMeshComponent* Mesh = CachedMesh.Get())
+	if (UWorld* World = CachedTimerWorld.Get())
 	{
-		if (UWorld* World = Mesh->GetWorld())
-		{
-			World->GetTimerManager().ClearTimer(DecayTimerHandle);
-		}
+		World->GetTimerManager().ClearTimer(DecayTimerHandle);
+		CachedTimerWorld = nullptr;
 	}
 }
 
@@ -33,6 +32,7 @@ void UComboNode::StartDecayTimer()
 	{
 		if (UWorld* World = Mesh->GetWorld())
 		{
+			CachedTimerWorld = World;
 			World->GetTimerManager().SetTimer(
 				DecayTimerHandle,
 				this,
@@ -98,6 +98,7 @@ void UComboNode::Activate(USkeletalMeshComponent* InMesh)
 		AnimInstance->Montage_JumpToSection(MontageSection, ActionMontage);
 	}
 
+	AnimInstance->OnMontageEnded.RemoveDynamic(this, &UComboNode::OnMontageCompleted);
 	AnimInstance->OnMontageEnded.AddDynamic(this, &UComboNode::OnMontageCompleted);
 
 	if (Graph)
@@ -151,23 +152,29 @@ void UComboNode::OpenComboWindow()
 	}
 }
 
-void UComboNode::CloseComboWindow()
+void UComboNode::CloseComboWindow(UAnimSequenceBase* Animation)
 {
 	if (!bComboWindowOpen)
 	{
 		return;
 	}
 
+	// Stale guard: the notify state End carries the montage it belongs to.
+	// If it doesn't match our montage, this is a stale End from a previous node
+	// whose montage was interrupted — discard it.
+	if (Cast<UAnimMontage>(Animation) != ActionMontage)
+	{
+		return;
+	}
+
 	UE_LOG(LogComboGraph, Verbose, TEXT("Node [%s] combo window closed via notify end"), *GetName());
 
-	// Window closed by the notify state end — if no input arrived, stop decay and end combo
 	if (!NextComboTag.IsValid())
 	{
 		StopDecayTimer();
 		bComboWindowOpen = false;
 		OnExitState();
 	}
-	// If input arrived during the window, OnExitState was already called — do nothing
 }
 
 void UComboNode::OnMontageCompleted(UAnimMontage* Montage, bool bInterrupted)
@@ -285,6 +292,7 @@ void UComboNode::ResetActivationState()
 	bComboWindowOpen   = false;
 	bExitStateInFlight = false;
 	StopDecayTimer();
+	CachedTimerWorld   = nullptr;
 
 	if (const USkeletalMeshComponent* Mesh = CachedMesh.Get())
 	{

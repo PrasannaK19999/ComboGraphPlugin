@@ -9,6 +9,7 @@
 
 class UComboPath;
 class UAnimMontage;
+class UAnimSequenceBase;
 class UAnimInstance;
 class USkeletalMeshComponent;
 class IComboGraphContract;
@@ -42,7 +43,7 @@ public:
 	 *  Opens the input window early — decay starts now, montage keeps playing.
 	 *  If input was already buffered, transitions immediately. */
 	void OpenComboWindow();
-	void CloseComboWindow();
+	void CloseComboWindow(UAnimSequenceBase* Animation);
 
 protected:
 
@@ -65,6 +66,10 @@ private:
 	FGameplayTag NextComboTag;
 
 	FTimerHandle DecayTimerHandle;
+
+	// Cached when the decay timer starts — lets StopDecayTimer clear it
+	// even if CachedMesh becomes invalid (actor death, level transition)
+	TWeakObjectPtr<UWorld> CachedTimerWorld;
 
 	bool bMontageCompleted  = false;
 

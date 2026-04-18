@@ -32,7 +32,7 @@ public:
 
 	// IComboWindowListener
 	virtual void OnComboWindowOpened_Implementation() override;
-	virtual void OnComboWindowClosed_Implementation() override;
+	virtual void OnComboWindowClosed_Implementation(UAnimSequenceBase* Animation) override;
 
 	// -----------------------------------------------------------------------
 	// Configuration
@@ -69,7 +69,7 @@ private:
 
 	// Graph currently executing (null when idle)
 	UPROPERTY()
-	TWeakObjectPtr<UComboGraph> ActiveGraph;
+	TObjectPtr<UComboGraph> ActiveGraph;
 
 	// Skeletal mesh cached from owner for montage playback
 	UPROPERTY()

@@ -6,6 +6,7 @@
 #include "ComboNode/ComboNode.h"
 #include "ComboGraphBuilder/ComboGraphBuilder.h"
 
+#include "Animation/AnimSequenceBase.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/DataTable.h"
 #include "GameFramework/Actor.h"
@@ -40,7 +41,7 @@ void UComboManagerComponent::OnComboInput(FGameplayTag InputTag)
 	}
 
 	// Active combo in progress — route tag as continuation input
-	if (ActiveGraph.IsValid())
+	if (ActiveGraph != nullptr)
 	{
 		ActiveGraph->RouteInput(InputTag);
 		return;
@@ -63,6 +64,7 @@ void UComboManagerComponent::OnComboInput(FGameplayTag InputTag)
 	ActiveGraph = Graph;
 
 	// Listen for combo end so we can clean up and allow a fresh start
+	Graph->OnComboEnd.RemoveDynamic(this, &UComboManagerComponent::OnActiveComboEnded);
 	Graph->OnComboEnd.AddDynamic(this, &UComboManagerComponent::OnActiveComboEnded);
 
 	Root->Activate(CachedMesh.Get());
@@ -70,24 +72,24 @@ void UComboManagerComponent::OnComboInput(FGameplayTag InputTag)
 
 void UComboManagerComponent::OnComboWindowOpened_Implementation()
 {
-	if (ActiveGraph.IsValid())
+	if (ActiveGraph != nullptr)
 	{
 		ActiveGraph->NotifyComboWindow();
 	}
 }
 
-void UComboManagerComponent::OnComboWindowClosed_Implementation()
+void UComboManagerComponent::OnComboWindowClosed_Implementation(UAnimSequenceBase* Animation)
 {
-	if (ActiveGraph.IsValid())
+	if (ActiveGraph != nullptr)
 	{
-		ActiveGraph->NotifyComboWindowClosed();
+		ActiveGraph->NotifyComboWindowClosed(Animation);
 	}
 }
 
 void UComboManagerComponent::SetWeaponDataTable(UDataTable* NewTable)
 {
 	// Interrupt any running combo cleanly before swapping
-	if (ActiveGraph.IsValid())
+	if (ActiveGraph != nullptr)
 	{
 		ActiveGraph->NotifyInterruption();
 	}
@@ -130,7 +132,7 @@ void UComboManagerComponent::RebuildGraphs()
 
 void UComboManagerComponent::OnActiveComboEnded()
 {
-	if (UComboGraph* Graph = ActiveGraph.Get())
+	if (UComboGraph* Graph = ActiveGraph)
 	{
 		// Outcomes 2/3 in OnExitState leave bIsTransitioning=true to block auto-restart.
 		// Clear it here so the player can start a fresh combo on next input.

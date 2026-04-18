@@ -9,6 +9,7 @@
 #include "ComboGraph.generated.h"
 
 class UComboNode;
+class UAnimSequenceBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnComboBegin);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnComboOnGoing);
@@ -45,7 +46,7 @@ public:
 	/** Called by IComboWindowListener when UComboWindowNotify fires.
 	 *  Forwards to the active node to open its input window early. */
 	void NotifyComboWindow();
-	void NotifyComboWindowClosed();
+	void NotifyComboWindowClosed(UAnimSequenceBase* Animation);
 
 	UPROPERTY(BlueprintAssignable, Category = "Combo")
 	FOnComboBegin OnComboBegin;
@@ -72,9 +73,4 @@ private:
 
 	UPROPERTY()
 	TWeakObjectPtr<UComboNode> ActiveNode;
-
-	// The node that opened the current notify-state window — may differ from ActiveNode
-	// after a rapid transition. Stale NotifyEnd events are discarded if this is null.
-	UPROPERTY()
-	TWeakObjectPtr<UComboNode> WindowNode;
 };

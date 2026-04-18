@@ -12,7 +12,18 @@ void UComboWindowNotifyState::NotifyBegin(
 	float TotalDuration,
 	const FAnimNotifyEventReference& EventReference)
 {
-	BroadcastToListener(MeshComp, true);
+	if (!MeshComp) return;
+	AActor* Owner = MeshComp->GetOwner();
+	if (!Owner) return;
+
+	for (UActorComponent* Component : Owner->GetComponents())
+	{
+		if (Component && Component->Implements<UComboWindowListener>())
+		{
+			IComboWindowListener::Execute_OnComboWindowOpened(Component);
+			return;
+		}
+	}
 }
 
 void UComboWindowNotifyState::NotifyEnd(
@@ -20,34 +31,16 @@ void UComboWindowNotifyState::NotifyEnd(
 	UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)
 {
-	BroadcastToListener(MeshComp, false);
-}
-
-void UComboWindowNotifyState::BroadcastToListener(USkeletalMeshComponent* MeshComp, bool bOpen)
-{
-	if (!MeshComp)
-	{
-		return;
-	}
-
+	if (!MeshComp) return;
 	AActor* Owner = MeshComp->GetOwner();
-	if (!Owner)
-	{
-		return;
-	}
+	if (!Owner) return;
 
 	for (UActorComponent* Component : Owner->GetComponents())
 	{
 		if (Component && Component->Implements<UComboWindowListener>())
 		{
-			if (bOpen)
-			{
-				IComboWindowListener::Execute_OnComboWindowOpened(Component);
-			}
-			else
-			{
-				IComboWindowListener::Execute_OnComboWindowClosed(Component);
-			}
+			// Pass Animation so the receiver can verify this End belongs to the correct montage
+			IComboWindowListener::Execute_OnComboWindowClosed(Component, Animation);
 			return;
 		}
 	}

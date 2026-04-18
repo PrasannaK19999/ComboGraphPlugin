@@ -6,27 +6,24 @@
 #include "UObject/Interface.h"
 #include "ComboWindowListener.generated.h"
 
+class UAnimSequenceBase;
+
 UINTERFACE(MinimalAPI, Blueprintable)
 class UComboWindowListener : public UInterface
 {
 	GENERATED_BODY()
 };
 
-/**
- * Implement on any ActorComponent to receive combo window notifications
- * fired by UComboWindowNotifyState placed on a montage.
- */
 class COMBOGRAPH_API IComboWindowListener
 {
 	GENERATED_BODY()
 
 public:
 
-	/** Called when the combo window notify state begins — input window opens. */
 	UFUNCTION(BlueprintNativeEvent, Category = "Combo")
 	void OnComboWindowOpened();
 
-	/** Called when the combo window notify state ends — input window closes. */
+	// Animation identifies which montage fired the End event — used to discard stale closes
 	UFUNCTION(BlueprintNativeEvent, Category = "Combo")
-	void OnComboWindowClosed();
+	void OnComboWindowClosed(UAnimSequenceBase* Animation);
 };

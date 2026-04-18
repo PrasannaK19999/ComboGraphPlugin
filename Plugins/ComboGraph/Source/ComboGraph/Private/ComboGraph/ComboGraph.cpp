@@ -16,12 +16,10 @@ void UComboGraph::NotifyTransition(const FGameplayTag ComboTag)
 
 	if (CurrentDepth == 1)
 	{
-		// First transition — combo just started
 		OnComboBegin.Broadcast();
 	}
 	else
 	{
-		// Subsequent transition — combo continues
 		OnComboOnGoing.Broadcast();
 	}
 
@@ -36,7 +34,6 @@ void UComboGraph::NotifyComboEnd()
 	UE_LOG(LogComboGraph, Log, TEXT("Graph [%s] combo ended at depth %d"),
 		*GetName(), CurrentDepth);
 
-	// Reset AFTER logging so the log captures the depth at which the combo ended
 	CurrentDepth = 0;
 	ComboHistory.Empty();
 }
@@ -44,14 +41,12 @@ void UComboGraph::NotifyComboEnd()
 void UComboGraph::NotifyNodeActivated(UComboNode* Node)
 {
 	ActiveNode = Node;
-	WindowNode = nullptr; // new activation invalidates any in-flight notify state window
 	UE_LOG(LogComboGraph, Verbose, TEXT("Graph [%s] active node set to [%s]"),
 		*GetName(), Node ? *Node->GetName() : TEXT("null"));
 }
 
 void UComboGraph::NotifyInterruption()
 {
-	// v1: all interruptions are hard reset. No EComboInterruptPolicy enum — single behavior.
 	UE_LOG(LogComboGraph, Log, TEXT("Graph [%s] interrupted, hard reset"), *GetName());
 	NotifyComboEnd();
 }
@@ -91,20 +86,15 @@ void UComboGraph::NotifyComboWindow()
 {
 	if (ActiveNode.IsValid())
 	{
-		WindowNode = ActiveNode;
 		ActiveNode->OpenComboWindow();
 	}
 }
 
-void UComboGraph::NotifyComboWindowClosed()
+void UComboGraph::NotifyComboWindowClosed(UAnimSequenceBase* Animation)
 {
-	// Use WindowNode, not ActiveNode — a rapid transition may have already moved ActiveNode
-	// forward. Stale NotifyEnd from the previous montage must close the node that opened
-	// the window, not whatever is currently active.
-	if (WindowNode.IsValid())
+	if (ActiveNode.IsValid())
 	{
-		WindowNode->CloseComboWindow();
-		WindowNode = nullptr;
+		ActiveNode->CloseComboWindow(Animation);
 	}
 }
 
