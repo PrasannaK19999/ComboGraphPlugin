@@ -43,7 +43,4 @@ public:
 		return TEXT("Combo Window");
 	}
 
-private:
-
-	static void BroadcastToListener(USkeletalMeshComponent* MeshComp, bool bOpen);
 };
