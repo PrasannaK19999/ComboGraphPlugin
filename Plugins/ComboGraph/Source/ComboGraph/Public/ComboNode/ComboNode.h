@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "GameplayTagContainer.h"
-#include "Engine/EngineTypes.h"
+#include "Engine/TimerHandle.h"
 #include "ComboNode.generated.h"
 
 class UComboPath;
