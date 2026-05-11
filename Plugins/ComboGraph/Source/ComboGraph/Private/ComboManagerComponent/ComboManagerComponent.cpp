@@ -1,6 +1,6 @@
 // Copyright 2026 Prasanna Keerthivasan. All Rights Reserved.
 
-#include "ComboManagerComponent.h"
+#include "ComboManagerComponent/ComboManagerComponent.h"
 
 #include "ComboGraph/ComboGraph.h"
 #include "ComboNode/ComboNode.h"
@@ -84,6 +84,11 @@ void UComboManagerComponent::OnComboWindowClosed_Implementation(UAnimSequenceBas
 	{
 		ActiveGraph->NotifyComboWindowClosed(Animation);
 	}
+}
+
+UComboGraph* UComboManagerComponent::GetActiveGraph() const
+{
+	return ActiveGraph;
 }
 
 void UComboManagerComponent::SetWeaponDataTable(UDataTable* NewTable)

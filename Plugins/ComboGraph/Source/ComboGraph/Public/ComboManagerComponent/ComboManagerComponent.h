@@ -20,7 +20,7 @@ class USkeletalMeshComponent;
  * Swap ComboDataTable at runtime (SetWeaponDataTable) to change weapons.
  */
 UCLASS(ClassGroup=(Combat), meta=(BlueprintSpawnableComponent))
-class COMBOGRAPHDEV_API UComboManagerComponent : public UActorComponent, public IComboWindowListener
+class COMBOGRAPH_API UComboManagerComponent : public UActorComponent, public IComboWindowListener
 {
 	GENERATED_BODY()
 
@@ -50,6 +50,7 @@ public:
 	 * Call from input bindings whenever the player presses a combo button.
 	 * On first press (no active combo): looks up the matching chain and starts it.
 	 * During an active combo: routes the tag as a buffered continuation input.
+	 * If the tag has no matching row in the DataTable, the call is silently ignored.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Combo")
 	void OnComboInput(FGameplayTag InputTag);
@@ -60,6 +61,11 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Combo")
 	void SetWeaponDataTable(UDataTable* NewTable);
+
+	/** Returns the active UComboGraph while a combo is running, nullptr when idle.
+	 *  Pass to UComboGraphQueryLibrary functions to inspect combo state in Blueprint. */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Combo")
+	UComboGraph* GetActiveGraph() const;
 
 private:
 

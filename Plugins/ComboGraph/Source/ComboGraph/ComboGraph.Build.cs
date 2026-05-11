@@ -13,7 +13,8 @@ public class ComboGraph : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"GameplayTags"
+			"GameplayTags",
+			"StructUtils"
 		});
 	}
 }
