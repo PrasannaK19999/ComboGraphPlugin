@@ -4,6 +4,7 @@
 #include "Interfaces/ComboWindowListener.h"
 
 #include "Components/ActorComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Actor.h"
 
 void UComboWindowNotifyState::NotifyBegin(

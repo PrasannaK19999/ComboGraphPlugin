@@ -8,6 +8,7 @@
 class UComboGraph;
 class UComboNode;
 class UComboGraphDataAsset;
+class UDataTable;
 struct FComboNodeData;
 
 
